@@ -1,0 +1,153 @@
+\chapter[实验环境搭建]{实验环境搭建}
+\label{chap:fuluA}
+Hadoop使用Java语言实现，集群之间以ssh协议通信，故Hadoop的依赖较少，且安装较为简便，其大体过程为：安装操作系统，安装ssh和jdk，解压缩Hadoop二进制包，编辑Hadoop配置文件并设置ssh、jdk和hadoop环境变量。
+本文以具体过程如下：
+
+1.最小化安装centos\_6.2\_x86-64
+
+2.设置网络，并将源设置为西电源，关闭防火墙
+
+\begin{verbatim}
+iptables -F
+iptables -X
+iptables -Z
+iptables-save > /etc/sysconfig/iptables
+\end{verbatim}
+3.更新系统
+
+\begin{verbatim}
+yum upgrade –y
+\end{verbatim}
+4.安装依赖包rsync openssh-server openssh-clients
+
+\begin{verbatim}
+yum install -y rsync openssh-server openssh-clients
+\end{verbatim}
+5.下载sun-jdk和hadoop包
+6.安装jdk到/usr/lib并创建相应软链接
+
+\begin{verbatim}
+cp jdk-6u31-linux-x64.bin /usr/lib
+cd /usr/lib
+sh jdk-6u31-linux-x64.bin
+rm jdk-6u31-linux-x64.bin
+ln -s jdk1.6.0_31 jdk
+\end{verbatim}
+7.创建hadoop用户和用户组，并设置密码
+
+\begin{verbatim}
+groupadd hadoop
+useradd -g hadoop hadoop –d /home/hadoop
+passwd hadoop
+\end{verbatim}
+8.创建ssh密钥公钥，并加入可信列表
+
+\begin{verbatim}
+su hadoop
+ssh-keygen -t rsa -P ""
+cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+\end{verbatim}
+验证密钥登录是否生效
+
+\begin{verbatim}
+ssh localhost
+\end{verbatim}
+若没生效，检查文件权限
+
+\begin{verbatim}
+chmod 644 ~/.ssh/authorized_keys
+\end{verbatim}
+9.解压缩hadoop-1.0.1到/usr/local并创建软链接
+
+\begin{verbatim}
+su
+cp hadoop-1.0.1.tar.gz /usr/local
+cd /usr/local
+tar zxvf hadoop-1.0.1.tar.gz
+ln -s hadoop-1.0.1 hadoop
+chown hadoop:hadoop hadoop-1.0.1 hadoop -R
+\end{verbatim}
+10.给hadoop用户设置环境变量
+
+\begin{verbatim}
+vi ~/.bashrc
+\end{verbatim}
+文件末尾添加环境变量如下：
+
+\begin{verbatim}
+# Set Hadoop-related environment variables
+export HADOOP_HOME=/usr/local/hadoop
+# Set JAVA_HOME (we will also configure JAVA_HOME directly for Hadoop later on)
+export JAVA_HOME=/usr/lib/jdk
+# Add Hadoop bin/ directory to PATH
+export PATH=$PATH:$HADOOP_HOME/bin
+\end{verbatim}
+重新登录使变量生效
+11.编辑hadoop配置(/usr/local/hadoop/conf)
+
+\begin{verbatim}
+conf/hadoop-env.sh
+\end{verbatim}
+替换
+
+\begin{verbatim}
+# export JAVA_HOME=/usr/lib/j2sdk1.5-sun
+\end{verbatim}
+为
+
+\begin{verbatim}
+export JAVA_HOME=/usr/lib/jdk
+\end{verbatim}
+添加
+
+\begin{verbatim}
+# Disable the HADOOP_HOME_WARN
+export HADOOP_HOME_WARN_SUPPRESS=TRUE
+\end{verbatim}
+取消hadoophome设置警报
+core-site.xml 
+
+\begin{verbatim}
+<configuration>
+     <property>
+         <name>fs.default.name</name>
+         <value>hdfs://localhost:9000</value>
+     </property>
+</configuration>
+\end{verbatim}
+hdfs-site.xml 
+
+\begin{verbatim}
+<configuration>
+     <property>
+         <name>dfs.replication</name>
+         <value>1</value>
+     </property>
+</configuration>
+\end{verbatim}
+mapred-site.xml 
+
+\begin{verbatim}
+<configuration>
+     <property>
+         <name>mapred.job.tracker</name>
+         <value>localhost:9001</value>
+     </property>
+</configuration>
+\end{verbatim}
+12.格式化hdfs
+
+\begin{verbatim}
+hadoop namenode -format
+\end{verbatim}
+13.启动hadoop
+
+\begin{verbatim}
+start-all.sh
+\end{verbatim}
+运行命令jps，查看Hadoop进程启动情况。如果
+TaskTracker、DataNode、Jps、NameNode、SecondaryNameNode和JobTracker子进程均成功启动，则Hadoop运行正常。
+至此，Hadoop就安装完成了。
+
+
+

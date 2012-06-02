@@ -1,0 +1,126 @@
+\chapter{基于Hadoop的MapReduce程序设计}
+\label{chap:3}
+
+\section{Web访问日志分析程序设计}
+\subsection{程序应用场景}
+瓦联网高速发展，各种Web2.0网站、电子商务网站创造了前所未有的访问记录，各种大型网络游戏不断刷新着在线用户数峰值，与此同时这些大型系统都记录下了海量的运行日志。挖掘出日志中蕴藏的信息来改进用户体验提升服务质量是非常有价值的。本程序利用MapReduce框架，利用分布式集群处理访问日志计算PV，可以解决传统生产环境中单机处理Web访问日志速度过慢的问题。
+
+\subsection{程序实现过程}
+本程序利用MapReduce框架，MapReduce的思想十分简单，将所有的数据分发到各个集群上，并在集群上做Map（映射），之后将映射结果合并并交给reduce做进一步的计算。
+
+针对于本应用，Map函数的功能为:从HDFS上获取日志文件，文件每一行作为一个输入，Mapper在读取行之后，验证其访问的有效性，之后设置“pv”作为Mapper的key，1作为值，将Map结果输出。Reduce函数的功能为：从Map端接收合并好的Key/Value对，将key所对应的Value的值相加，得到PV值，将新的Key/Value对输出。
+
+整个程序运行流程如下图\ref{figer:运行流程图}：
+
+\subsection{程序运行环境}
+Hadoop依赖SSH和JDK，具有很高的通用性，但一般情况下，为了整体集群的效率，操作系统一般选用Linux，使用Sun JDK，本程序的开发运行环境具体如下：
+
+实验机器配置：
+
+CPU：Pentium(R) Dual-Core  CPU E5800 @ 3.20GHz
+
+内存：2G DDR2 800
+
+硬盘：Seagate 320G 7200RPM
+
+操作系统：CentOS\_6.2\_x64
+  
+CentOS是RedHat的开源版本，具有了RedHat的一切特性并有着稳定的社区支持，以其高效和稳定著称，是理想的Hadoop宿主操作系统。6.2是其最新稳定版。本文中所使用的CentOS为netinstall版，这种方式安装出来的CentOS体积最小，软件包最新，服务数量最少，运行速度最快，且不损失任何系统稳定性。
+
+JDK：Sun JDK 1.6.0\_31
+
+Java Development Kit (JDK) 是Sun公司针对Java开发人员发布的免费软件开发工具包(SDK，Software development kit)。自从Java推出以来，Sun JDK已经成为使用最广泛的Java SDK。1.6.0\_31是其最新稳定版。
+
+Hadoop 1.0.1
+
+Hadoop是Apache社区下的开源软件，1.0.1是其最新稳定版。
+
+编程语言：Java、Python 2.6
+
+编程语言的差异会对程序的运行效率产生至关重要的影响，本实验选用Java、Python两种最常见的解释性编程语言，便于后期性能对比。
+
+
+\section{程序开发与实现}
+\subsection{原生Java的实现}
+Hadoop使用Java语言实现，其自身提供了一套完整的Java类库，使用起来十分方便。
+
+首先，创建一个Java文件，在文件头部定义package名称，引入相关类库之后就可以开始编写Mapreduce程序了，程序中需要在Java包内定一个一个Public类pv，运行时，将类名作为参数传入Hadoop。pv类里定义Map和Reduce类和一个main函数：TokenizerMapper继承Mapper类，IntSumReducer继承Reducer类，main函数里指定运行的Map和Reduce类名、和数据类型，其各部分具体功能如下：
+
+TokenizerMapper定义两个private变量，用于存储Key/Value的值。之后定义一个map函数，判断读入的数据的合法性，若合法，则给value赋值1，反之赋值0。
+
+IntSumReducer定义一个变量，用于存储最终pv的值。之后定一个一个函数reducer，将Map传入的结果累加。最后输出Key和pv值。
+
+main函数中实例化Hadoop的配置类、和Job类，并给job类的各项属性赋值。
+
+编写完毕之后，应对程序进行调试，Hadoop为Eclipse提供了完整的调试插件，但由于其配置复杂且超出了本文讨论范围，在此不详细给出。
+
+其在Hadoop中的运行流程如下：
+
+至此，Web日志处理的原生Java程序就实现了。
+
+\subsection{基于Streaming的Python实现}
+Hadoop在支持原生Java的同时也对外提供了Streaming方法，该方法把HDFS中的文件转化成文件流，传入外部程序处理，使得Hadoop具有处理非Java编写的程序的能力。本文选用了和Java及其类似的解释性编程语言Python，便于后期的性能测试对比。
+
+在Hadoop的Streaming中，所编程序在开发过程中无需引用任何Hadoop类库，Hadoop会将文件转换成文件流输入，程序处理之后，再将Key/Value对以std方式输出，Hadoop会自动捕获输出并进行下一步处理。实现是，Mapper和Reducer需要单独书写。
+
+新建文件Mapper.py，文件首部向系统声明文件执行类型为python，又因程序使用std I/O并分割字符串，所以在头部引用sys和itemgetter。之后使用for循环语句从sys.stdin读取数据，并判断其合法性，若合法，则给value赋值1，反之赋值0，最后使用print输出Key/Value对，并以一个缩进符号分割开来。
+
+新建文件Reducer.py，文件首部和引用于Mapper.py相同，定义存储pv值的变量sum，使用for循环从sys.stdin读取Mapper中生成的文件流，使用itemgetter分割Key/Value对到对应的变量，将pv值累加。最后使用print输出Key和pv值。
+
+由于Streaming使用std I/O，使得其调试非常简单，用户可以直接在本机使用cat命令通过Unix管道即可进行简单的的调试。运行命令cat 10.log | ./mapper.py即可查看Map的结果。运行cat 10.log | ./mapper.py | ./reducer.py即可查看MapReducer结果。
+
+运行时向hadoop指定map文件和reduce文件，并使用file命令将map/reduce程序分发到各节点即可。
+
+
+其在Hadoop中的运行流程如下：
+
+至此，Web日志处理的Python程序就实现了。
+
+\section{实现效果及性能测试}
+\subsection{测试数据及方法}
+为了验证本程序的正确性和运行效率，笔者使用了9组数据，测试数据为基数为10到100,000,000，增量为十倍，共8组清洗过的有效合法日志，日志取自实际生产环境服务器，具有一定的参考价值。所有测试数据均存放在采用Hadoop默认配置的HDFS上。
+
+测试环境为伪分布式的单机Hadoop节点，Java和Python程序的运行均使用Hadoop默认参数执行，测试过程中，使用sar对系统资源进行监测，测试结束后，收集运行日志进行更进一步的分析。
+
+
+\subsection{基于原生Java的实现及性能测试}
+本实验中Java程序均使用Sun\_JDK\_1.6.0\_31编译并打包，Java程序上传到服务器上之后，执行命令
+
+\begin{verbatim}
+hadoop jar pv.jar test.pv input/100.log output/java/100
+\end{verbatim}
+
+其中pv.jar为打包后的程序，test.pv为程序中所对应的包及类，input/100.log为HDFS上的日志文件， output/java/100为输出目录。
+
+命令执行后，终端会实时跟踪程序运行情况，用户也可以通过网页终端查看当前程序的运行状况。程序执行完毕之后，Hadoop会将程序运行信息输出至终端，程序运行结果保存在指定的HDFS目录下用户可以运行一下命令查看运行结果。
+
+\begin{verbatim}
+hadoop dfs -cat output/java/100/part-r-00000
+\end{verbatim}
+
+在本实验中，所用测试数据是提前使用工具处理好的数据，目的在于验证程序的准确性并分析对比其运行时间。具体运行结果和运行时间如下表：
+
+\subsection{基于Streaming的Python实现及其性能测试}
+
+本实验中的Python程序均使用CentOS自带的Python 2.6.6解析，Python程序上传到服务器上之后，执行命令
+
+\begin{verbatim}
+hadoop jar $HADOOP_HOME/contrib/streaming/hadoop-streaming-1.0.1.jar \
+-file mapper.py -mapper mapper.py \
+-file reducer.py -reducer reducer.py \
+-input input/100.log -output output/python/100
+\end{verbatim}
+
+其中\$HADOOP\_HOME/contrib/streaming/hadoop\-streaming\-1.0.1.jar为Hadoop内置的Streaming类，\-file命令将程序分发到各节点，\-mapper和\-reducer命令分别制定mapper.py和reducer.py为Mapper和Reducer，input/100.log为HDFS上的日志文件， output/python/100为输出目录。
+
+命令执行后，同原生Java一样，终端会实时跟踪程序运行情况，用户也可以通过网页终端查看当前程序的运行状况。程序执行完毕之后，Hadoop会将程序运行信息输出至终端，程序运行结果保存在指定的HDFS目录下用户可以运行一下命令查看运行结果。
+
+\begin{verbatim}
+hadoop dfs -cat output/python/100/part-r-00000
+\end{verbatim}
+
+同上一小节，在本实验中，所用测试数据是提前使用工具处理好的数据，目的在于验证程序的准确性并分析对比其运行时间。具体运行结果和运行时间如下表：
+
+
+\section{本章小结}
+本章以Web访问日志程序开发为例，分别介绍了在Hadoop下的两种程序开发模式：原生Java和Streaming，并对其性能做了测试，下一章会根据本章第三节的测试结果做以分析和说明。
