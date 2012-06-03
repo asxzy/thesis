@@ -11,7 +11,7 @@ Google的很多程序员为了处理海量的原始数据，已经实现了数�
 
 \subsection{MapReduce的实现过程}
 MapReduce的实现过程并不复杂，图\ref{fig:MapReduce}向我们展示了MapReduce操作的全部流程。
-\begin{figure}
+\begin{figure}[h]
  \centering
  \includegraphics[width=1\textwidth]{MapReduce}
  \caption{MapReduce实现过程}
@@ -99,8 +99,20 @@ HDFS是分布式计算的存储基石，Hadoop的分布式文件系统和其他�
 \item 文件会被分割成多个文件块，每个文件块被分配存储到数据节点上，而且根据配置会由复制文件块来保证数据的安全性。
 \end{enumerate}
 
-图\ref{figer:HDFS-jiegou}：HDFS结构示意图
-上图中展现了整个HDFS三个重要角色：NameNode、DataNode和Client。NameNode可以看作是分布式文件系统中的管理者，主要负责管理文件系统的命名空间、集群配置信息和存储块的复制等。NameNode会将文件系统的Meta-data存储在内存中，这些信息主要包括了文件信息、每一个文件对应的文件块的信息和每一个文件块在DataNode的信息等。DataNode是文件存储的基本单元，它将Block存储在本地文件系统中，保存了Block的Meta-data，同时周期性地将所有存在的Block信息发送给NameNode。Client就是需要获取分布式文件系统文件的应用程序。这里通过三个操作来说明他们之间的交互关系。
+图\ref{fig:HDFS架构}展现了整个HDFS三个重要角色：NameNode、DataNode和Client。
+
+\begin{figure}[h]
+ \centering
+ \includegraphics[width=1\textwidth]{HDFS架构}
+ \caption{HDFS架构}
+ \label{fig:HDFS架构}
+\end{figure}
+
+\begin{enumerate}
+\item NameNode可以看作是分布式文件系统中的管理者，主要负责管理文件系统的命名空间、集群配置信息和存储块的复制等。NameNode会将文件系统的Meta-data存储在内存中，这些信息主要包括了文件信息、每一个文件对应的文件块的信息和每一个文件块在DataNode的信息等。
+\item DataNode是文件存储的基本单元，它将Block存储在本地文件系统中，保存了Block的Meta-data，同时周期性地将所有存在的Block信息发送给NameNode。
+\item Client就是需要获取分布式文件系统文件的应用程序。这里通过三个操作来说明他们之间的交互关系。
+\end{enumerate}
 
 文件写入：
 
@@ -143,7 +155,7 @@ HDFS是MapReduce的读写的底层实现，对MapReduce进化起着至关重要�
 \subsection{Hadoop的运行过程}
 在Hadoop的系统中，会有一台Master，主要负责NameNode的工作以及JobTracker的工作。JobTracker的主要职责就是启动、跟踪和调度各个Slave的任务执行。还会有多台Slave，每一台Slave通常具有DataNode的功能并负责TaskTracker的工作。TaskTracker根据应用要求来结合本地数据执行Map任务以及Reduce任务。
 
-具体过程如下：
+具体如图\ref{fig:Hadoop运行流程}所示，过程如下：
 
 \begin{enumerate}
 \item 在分布式环境中客户端创建任务并提交。
@@ -154,7 +166,7 @@ HDFS是MapReduce的读写的底层实现，对MapReduce进化起着至关重要�
 
 2)将input的文件切分为逻辑上的输入InputSplit，其实这就是在上面提到的在分布式文件系统中blocksize是有大小限制的，因此大文件会被划分为多个block。
 
-3)通过RecordReader来再次处理inputsplit为一组records，输出给Map。（inputsplit只是逻辑切分的第一步，但是如何根据文件中的信息来切分还需要RecordReader来实现，例如最简单的默认方式就是回车换行的切分）
+3)通过RecordReader来再次处理inputsplit为一组records，输出给Map。inputsplit只是逻辑切分的第一步，但是如何根据文件中的信息来切分还需要RecordReader来实现，例如最简单的默认方式就是回车换行的切分。
 
 \item RecordReader处理后的结果作为Map的输入，Map执行定义的Map逻辑，输出处理后的key和value对应到临时中间文件。
 
@@ -193,17 +205,39 @@ Hadoop是面向大型集群实现MapReduce方法而设计的编程框架，其�
 \subsection{MapReduce在Hadoop中的三种实现方式及特点}
 \begin{enumerate}
 \item 原生Java
+Hadoop是用Java编写的，所有Hadoop文件系统间的相互作用都是由Java API调解的。 举个例子，文件系统的shell就是一个Java应用，它使用Java文件系统类来提供文件系统操作。
 
-
+同时，Hadoop提供了一套完整的Java类，用以实现MapReduce、HDFS操作及Hadoop配置。实际开发过程中，开发者可以直接引用这些类，达到快速开发的目的。
 
 \item Streaming
-
-Hadoop提供了MapReduce的API，并允许你使用非Java的其他语言来写自己的map和reduce函数。Hadoop的Streaming使用Unix标准流作为Hadoop和应用程序之间的接口，所以我们可以使用任何编程语言通过标准输入/输出来写MapReduce程序。
+Streaming框架允许任何程序语言实现的程序在Hadoop MapReduce中使用，方便已有程序向Hadoop平台移植。其原理是用Java实现一个包装用户程序的MapReduce程序，该程序负责调用MapReduce Java接口获取key/value对输入，创建一个新的进程启动包装的用户程序，将数据通过管道传递给包装的用户程序处理，然后调用MapReduce Java接口将用户程序的输出切分成key/value对输出。
 
 Streaming天生适合用于文本处理(到0.21.0版本时，Streaming也可以处理二进制流)，在文本模式下使用时，它有一个数据的行视图。map的输入数据通过标准输入流传递给map函数，并且是一行一行地传输，最后将结果行写到标准输出。map输出的键/值对是以一个制表符分隔的行，它以这样的形式写到标准输出。reduce 函数的输入格式相同——通过制表符来分隔的键/值对——并通过标准输入流进行传输。reduce函数从标准输入流中读取输入行，该输入已由Hadoop框架根据键排过序，最后将结果写入标准输出。
 
 值得一提的是Streaming和Java MapReduce API之间的设计差异。Java API控制的map函数一次只能处理一条记录。针对输入数据中的每一条记录，该框架均需调用Mapper的map()方法来处理，然而在Streaming中，map程序可以自己决定如何处理输入数据，例如，它可以轻松读取并同时处理若干行，因为它受读操作的控制。用户的Java map实现的是“推”记录方式，但它依旧可以同时处理多行，具体做法是通过mapper中实例变量将之前读取的多行汇聚在一起。在这种情况下，需要实现close()方法，以便知道何时读到最后一条记录，进而完成对最后一组记录行的处理。
 
+如下图\ref{fig:Streaming}所示，其中Streaming Java Mapper通过管道将key/value输入传递给用户mapper程序的标准输入，并获取用户mapper程序的标准输出；Streaming Java Reducer调用Java接口通过InputFormat从HDFS获取输入数据，从管道将key/value传递给用户 reducer程序的标准输入，获取用户reducer程序的标准输出并调用Java接口通过OutputFormat输出数据；用户mapper和reducer程序负责处理数据，都从标准输入读取数据，向标准输出写入数据。
+
+
+\begin{figure}[h]
+ \centering
+ \includegraphics[width=1\textwidth]{Streaming}
+ \caption{Streaming}
+ \label{fig:Streaming}
+\end{figure}
+
+
+Streaming有如下一些优点： 
+
+1)开发效率高，很多现有程序（包括脚本）能够方便的移植到hadoop平台上去运行 
+
+2)某些程序运行效率高，对于某些cpu密集型程序，如果map-reduce程序用C++编写，效率有可能提高 
+
+Streaming存在如下一些不足：
+
+1) Streaming中的mapper和reducer默认只能向标准输出写数据，不能方便地处理多路输出。 
+
+2) 用Java编写的MapReduce程序直接处理框架从输入数据中得到的key/value对，在Streaming中Java程序不直接处理key/value对，而是通过管道写到mapper程序的标准输入，mapper程序再从key/tvalue中解析出key/value对，这个过程多了两次数据拷贝和解析（分割），带来一定的开销。对于reducer也是一样的。
 
 \item Pipes
 

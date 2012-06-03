@@ -189,12 +189,12 @@
     \end{flushright}
 
     \begin{center}
-%        \vskip \stretch{2}
-%            \includegraphics[width=9cm]{xd1}
+        \vskip \stretch{2}
+            \includegraphics[width=9cm]{xd1}
         \vskip \stretch{1}
             {\heiti\zihao{0}\ziju{0.25} \XDBA@label@thesis}
-%        \vskip \stretch{2}
-%            \includegraphics[width=5cm]{xd2}
+        \vskip \stretch{2}
+            \includegraphics[width=5cm]{xd2}
         \vskip \stretch{2}
             \heiti\zihao{3} \XDBA@label@title~ \XDBAunderline[250pt]{~\XDBA@value@title~}
         \vskip \stretch{0.5}

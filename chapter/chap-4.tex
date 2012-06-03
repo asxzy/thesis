@@ -2,22 +2,24 @@
 \label{chap:4}
 
 \section{Hadoop调度对性能的影响}
-Hadoop程序运行时，会有进程监控节点资源，并将系统中的空闲资源按一定的策略分配给作业。
-\subsection{Hadoop默认调度机制FIFO}
-Hadoop默认的调度器是JobQueueTaskScheduler，使用规则为FIFO (First In First Out，即先入先出)原则，即按照作业的优先级高低，再按照到达时间的先后选择被执行的作业。
+Hadoop程序运行时，会有进程监控节点资源，并将系统中的空闲资源按一定的策略分配给作业，这个进程的核心就是调度器。Hadoop默认的调度器是JobQueueTaskScheduler，使用规则为FIFO (First In First Out，即先入先出)原则，即按照作业的优先级高低，再按照到达时间的先后选择被执行的作业。
 
-其具体工作流程如下图：
-%http://www.linuxidc.com/Linux/2012-01/50857.htm
+其具体工作流程如下图\ref{fig:调度器}：
+\begin{figure}[h]
+ \centering
+ \includegraphics[width=1\textwidth]{调度器}
+ \caption{调度器}
+ \label{fig:调度器}
+\end{figure}
 
 对于JobQueueTaskScheduler的任务调度原则可总结如下：
 
 \begin{enumerate}
-\item 1.任务先进先出；
-\item 2.尽量使集群每一个TaskTracker达到负载均衡(这个均衡是task数量上的而不是实际的工作强度)；
-\item 3.尽量分配作业的本地任务给TaskTracker，但不是尽快分配作业的本地任务给TaskTracker，最多分配一个非本地任务给TaskTracker(一是保证任务的并发性，二是避免有些TaskTracker的本地任务被偷走)，最多分配一个reduce任务；
-\item 4.为紧急的Task预留一定的slot；
+\item 任务先进先出；
+\item 尽量使集群每一个TaskTracker达到负载均衡(这个均衡是task数量上的而不是实际的工作强度)；
+\item 尽量分配作业的本地任务给TaskTracker，但不是尽快分配作业的本地任务给TaskTracker，最多分配一个非本地任务给TaskTracker(一是保证任务的并发性，二是避免有些TaskTracker的本地任务被偷走)，最多分配一个reduce任务；
+\item 为紧急的Task预留一定的slot；
 \end{enumerate}
-
 
 这种调度方式简单明了，JobTracker负载较小，适用于大多数的应用场景。
 
@@ -69,3 +71,4 @@ UV是独立访客 (unique visitor)的缩写，对于网站的用户粘度和回�
 实际生产环境中，Key的打散和控制还有其他多种方法，如将字符串转换为整形数字提高处理速度、或者将一个MapReduce操作划分成两份MapReduce程序去执行。具体使用方法应该根据应用程序的要求来确定，在此不一一赘述。
 
 \section{本章小结}
+本章通过分析Hadoop运行过程和运行机制，结合第\ref{chap:3}章中的测试结果，
