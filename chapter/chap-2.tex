@@ -3,24 +3,27 @@
 
 \section{MapReduce简介}
 \subsection{什么是MapReduce}
-在MapReduce出现之前，Google的程序员已经写了数以百计的为处理大量原始数据而写的专用程序，比如，爬行文档，Web请求日志，等等。为了计算各种类型的派生数据，比如，倒排索引，Web文档的图结构的各种表示，每个主机上爬行的页面数量的概要，每天被请求数量最多的集合，等等。很多这样的计算在概念上很容易理解。然而，输入的数据量很大，并且只有计算被分布在成百上千的机器上才能在可以接受的时间内完成。怎样并行计算，分发数据，处理错误，所有这些问题综合在一起，使得原本很简单的计算，因为要大量的复杂代码来处理这些问题，而变得让人难以处理。
+Google的很多程序员为了处理海量的原始数据，已经实现了数以百计的、专用的计算方法。这些计算方法用来处理大量的原始数据，比如，文档抓取（类似网络爬虫的程序）、Web请求日志等等；也为了计算处理各种类型的衍生数据，比如倒排索引、Web文档的图结构的各种表示形势、每台主机上网络爬虫抓取的页面数量的汇总、每天被请求的最多的查询的集合等等。大多数这样的数据处理运算在概念上很容易理解。然而由于输入的数据量巨大，因此要想在可接受的时间内完成运算，只有将这些计算分布在成百上千的主机上。如何处理并行计算、如何分发数据、如何处理错误？所有这些问题综合在一起，需要大量的代码处理，因此也使得原本简单的运算变得难以处理。
 
-为了对这个复杂的问题做以回应，Google设计了一个新的抽象模型，它让程序的表达更为简单，而且在一个库里隐藏并行化，容错，数据分布，负载均衡的那些杂乱的细节。Google这个抽象的编程模型的灵感来自Lisp和许多其他函数语言。这个抽象的编程模型就叫做MapReduce。
+为了解决上述复杂的问题，Google设计了一个新的抽象模型，使用这个抽象模型，我们只要表述我们想要执行的简单运算即可，而不必关心并行计算、容错、数据分布、负载均衡等复杂的细节，这些问题都被封装在了一个库里面。设计这个抽象模型的灵感来自Lisp和许多其他函数式语言的Map和Reduce的原语。我们意识到我们大多数的运算都包含这样的操作：在输入数据的“逻辑”记录上应用Map操作得出一个中间key/value pair集合，然后在所有具有相同key值的value值上应用Reduce操作，从而达到合并中间的数据，得到一个想要的结果的目的。使用MapReduce模型，再结合用户实现的Map和Reduce函数，用户可以非常容易的实现大规模并行化计算；通过MapReduce模型自带的“再次执行”（re-execution）功能，也提供了初级的容灾实现方案。Google将这种抽象模型做以总结，并于2004在OSDI国际会议上提出，最终风靡全球。
 
-MapReduce是一个用来处理和产生大数据集相关实现的编程模型。用户指定一个能处理一对key/value的map函数，用其产生中间的key/value集合。然后再指定一个reduce函数来合并所有的具有相同中间key的中间value。下面将列举许多可以用这个模型来表示的现实世界中的工作。
+以MapReduce为模型编写的程序能自动地在大规模的普通机器上实现并行化处理。这个系统在运行时需要关注的细节有：分割输入数据，在机群上的调度，机器的错误处理，管理机器之间必要的通信。这样就可以让那些没有并行分布式处理系统经验的程序员使用大量分布式系统的资源。MapReduce可以灵活调整，使其在由普通机器组成的机群上实现运行：一个典型的MapReduce可以计算处理几千台机器上的以TB计算的数据。程序员发现这个系统非常好用：已经实现了数以百计的MapReduce程序，每天在Google的机群上都有1000多个MapReduce程序在执行。
 
-以这种方式写的程序能自动地在大规模的普通机器上实现并行化处理。这个系统在运行时需要关注的细节有：分割输入数据，在机群上的调度，机器的错误处理，管理机器之间必要的通信。这样就可以让那些没有并行分布式处理系统经验的程序员使用大量分布式系统的资源。
-
-MapReduce可以灵活调整，使其在由普通机器组成的机群上实现运行：一个典型的MapReduce可以计算处理几千台机器上的以TB计算的数据。程序员发现这个系统非常好用：已经实现了数以百计的MapReduce程序，每天在Google的机群上都有1000多个MapReduce程序在执行。
-	
-	
 \subsection{MapReduce的实现过程}
-显示了我们实现的MapReduce操作的全部流程。当用户的程序调用MapReduce的函数的时候，将发生下面的一系列动作(下面的数字和图1中的数字标签相对应)：
+MapReduce的实现过程并不复杂，图\ref{fig:MapReduce}向我们展示了MapReduce操作的全部流程。
+\begin{figure}
+ \centering
+ \includegraphics[width=1\textwidth]{MapReduce}
+ \caption{MapReduce实现过程}
+ \label{fig:MapReduce}
+\end{figure}
+
+当用户的程序调用MapReduce的函数的时候，将发生下面的一系列动作(下面的数字和图\ref{fig:MapReduce}中的数字标签相对应)：
 
 \begin{enumerate}
-\item 在用户程序里的MapReduce库首先分割输入文件成M个片，每个片的大小一般从 16到64MB(用户可以通过可选的参数来控制)。然后在机群中开始大量的拷贝程序。
+\item 在用户程序里的MapReduce库首先分割输入文件成M个片，每个片的大小一般从16到64MB(用户可以通过可选的参数来控制)。然后在机群中开始大量的拷贝程序。
 
-\item 这些程序拷贝中的一个是master，其他的都是由master分配任务的worker。有M 个map任务和R个reduce任务将被分配。管理者分配一个map任务或reduce任务给一个空闲的worker。
+\item 这些程序拷贝中的一个是master，其他的都是由master分配任务的worker。有M个map任务和R个reduce任务将被分配。管理者分配一个map任务或reduce任务给一个空闲的worker。
 
 \item 一个被分配了map任务的worker读取相关输入split的内容。它从输入数据中分析出key/value对，然后把key/value对传递给用户自定义的map函数。由map函数产生的中间key/value对被缓存在内存中。
 
@@ -56,7 +59,7 @@ Hadoop是Apache下的一个开源软件，它作为一个开源的软件平台�
 Hadoop是一个能够对大量数据进行分布式处理的软件框架。但是Hadoop是以一种可靠、高效、可伸缩的方式进行处理的。Hadoop是可靠的，因为它假设计算元素和存储会失败，因此它维护多个工作数据副本，确保能够针对失败的节点重新分布处理。Hadoop是高效的，因为它以并行的方式工作，通过并行处理加快处理速度。Hadoop还是可伸缩的，能够处理PB级数据。此外，Hadoop依赖于社区服务器，因此它的成本比较低，任何人都可以使用。
 
 \subsection{Hadoop的组成}
-Hadoop整体功能由五个子进程实现，他们分别为NameNode、SecondaryNameNode、Jobtracker、DataNode和TaskTreackee，其具体功能如下：
+Hadoop整体功能由五个子进程实现，他们分别为NameNode、SecondaryNameNode、Jobtracker、DataNode和TaskTracker，其具体功能如下：
 
 NameNode，NameNode是分布式文件系统的管理者，主要负责文件系统的命名空间，集群的配置信息和数据块的复制信息等，并将文件系统的元数据存储在内存中。
 
@@ -68,9 +71,16 @@ DataNode，负责为响应来自HDFS客户机的读写请求。它们还响应�
 
 TaskTrackee，运行作业划分后的任务。
 
-其中NameNode、SecondaryNameNode和Jobtracker运行在Master节点上，DataNode和TaskTreackee运行在Slave节点上。
+其中NameNode、SecondaryNameNode和Jobtracker运行在Master节点上，DataNode和TaskTracker运行在Slave节点上。
 
+本文中，因为实验环境限制，Hadoop运行模式为伪分布式，即五个子进程均处于同一宿主机上。如图\ref{fig:五个子进程}
 
+\begin{figure}[h]
+ \centering
+ \includegraphics[width=0.9\textwidth]{五个子进程}
+ \caption{五个子进程}
+ \label{fig:五个子进程}
+\end{figure}
 %Hadoop基于SSH协议管理集群，节点间通过HDFS传输文件，程序运行时，Hadoop中的JobTracker守护进程负责调度节点，将Map和Reduce按照一定的规则分发到节点上的TaskTracker进程中，TaskTracker进程根据编写好的Map函数和Reduce函数从HDFS上获取数据并对其做进一步的处理。
 
 %Mapper将HDFS中的文件按照事先编写好的Map函数进行处理，并将处理结果以Key/Value对的形式输出，之后，Hadoop会把Map结果根据键值合并，并将合并结果分发到集群用Reduce函数处理。这个过程中的整体通信会带来很大的网络I/O开销，尤其是在Map的开始和结束的时候，会带来一场大的“网络风暴”。同时，Hadoop会在运行时产生临时文件，从而带来很大的内存和磁盘开销。
@@ -133,7 +143,7 @@ HDFS是MapReduce的读写的底层实现，对MapReduce进化起着至关重要�
 \subsection{Hadoop的运行过程}
 在Hadoop的系统中，会有一台Master，主要负责NameNode的工作以及JobTracker的工作。JobTracker的主要职责就是启动、跟踪和调度各个Slave的任务执行。还会有多台Slave，每一台Slave通常具有DataNode的功能并负责TaskTracker的工作。TaskTracker根据应用要求来结合本地数据执行Map任务以及Reduce任务。
 
-根据流程图来说一下具体一个任务执行的情况。
+具体过程如下：
 
 \begin{enumerate}
 \item 在分布式环境中客户端创建任务并提交。
@@ -157,6 +167,14 @@ HDFS是MapReduce的读写的底层实现，对MapReduce进化起着至关重要�
 \item OutputFormat的职责是，验证输出目录是否已经存在，同时验证输出结果类型是否如Config中配置，最后输出Reduce汇总后的结果。
 \end{enumerate}
 
+\begin{figure}
+ \centering
+ \includegraphics[width=1\textwidth]{Hadoop运行流程}
+ \caption{Hadoop运行流程}
+ \label{fig:Hadoop运行流程}
+\end{figure}
+
+
 \subsection{Hadoop的特点}
 Hadoop是面向大型集群实现MapReduce方法而设计的编程框架，其实现具有以下几个特点。
 
@@ -175,6 +193,8 @@ Hadoop是面向大型集群实现MapReduce方法而设计的编程框架，其�
 \subsection{MapReduce在Hadoop中的三种实现方式及特点}
 \begin{enumerate}
 \item 原生Java
+
+
 
 \item Streaming
 
@@ -367,3 +387,4 @@ Web访问日志记录了用户访问一个网站的所有过程，是个非常�
 有效的利用Web访问日志可以高效精准的分析出用户喜好，帮助网站运营商提升网站质量。
 
 \section{本章小结}
+本章主要介绍本文的研究背景，详述了MapReduce、Hadoop的起源、发展及其运行机制，并详述了Hadoop Counter和Web访问日志的内容及其格式。为进一步的开发和研究做了铺垫。
