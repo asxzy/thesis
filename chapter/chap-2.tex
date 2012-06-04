@@ -58,35 +58,6 @@ Hadoop是Apache下的一个开源软件，它作为一个开源的软件平台�
 
 Hadoop是一个能够对大量数据进行分布式处理的软件框架。但是Hadoop是以一种可靠、高效、可伸缩的方式进行处理的。Hadoop是可靠的，因为它假设计算元素和存储会失败，因此它维护多个工作数据副本，确保能够针对失败的节点重新分布处理。Hadoop是高效的，因为它以并行的方式工作，通过并行处理加快处理速度。Hadoop还是可伸缩的，能够处理PB级数据。此外，Hadoop依赖于社区服务器，因此它的成本比较低，任何人都可以使用。
 
-\subsection{Hadoop的组成}
-Hadoop整体功能由五个子进程实现，他们分别为NameNode、SecondaryNameNode、Jobtracker、DataNode和TaskTracker，其具体功能如下：
-
-NameNode，NameNode是分布式文件系统的管理者，主要负责文件系统的命名空间，集群的配置信息和数据块的复制信息等，并将文件系统的元数据存储在内存中。
-
-SecondaryNameNode，SecondaryNameNode有两个作用，一是镜像备份，二是日志与镜像的定期合并。它会周期性的将EditLog中记录的对HDFS的操作合并到一个checkpoint中，然后清空EditLog。如果没有SecondaryNameNode的这个周期性的合并过程，那么当每次重启NameNode的时候，就会花费很长的时间。而这样周期性的合并就能减少重启的时间。同时也能保证HDFS系统的完整性。
-
-JobTracker，负责任务的接受初始化，调度以及对TaskTrackee的监控。JobTracker作为一个单独的JVM运行，对整个MapReduce程序的运行起着至关重要的作用。
-
-DataNode，负责为响应来自HDFS客户机的读写请求。它们还响应创建、删除和复制来自NameNode的块的命令。并与NameNode通过心跳包来维持联系。DataNode，负责为响应来自是文件实际存储的位置，它将块(Block)的元数据信息存储在本地文件系统中，周期性地将所有的Block信息发给NameNode。
-
-TaskTrackee，运行作业划分后的任务。
-
-其中NameNode、SecondaryNameNode和Jobtracker运行在Master节点上，DataNode和TaskTracker运行在Slave节点上。
-
-本文中，因为实验环境限制，Hadoop运行模式为伪分布式，即五个子进程均处于同一宿主机上。如图\ref{fig:五个子进程}
-
-\begin{figure}[h]
- \centering
- \includegraphics[width=0.9\textwidth]{五个子进程}
- \caption{五个子进程}
- \label{fig:五个子进程}
-\end{figure}
-%Hadoop基于SSH协议管理集群，节点间通过HDFS传输文件，程序运行时，Hadoop中的JobTracker守护进程负责调度节点，将Map和Reduce按照一定的规则分发到节点上的TaskTracker进程中，TaskTracker进程根据编写好的Map函数和Reduce函数从HDFS上获取数据并对其做进一步的处理。
-
-%Mapper将HDFS中的文件按照事先编写好的Map函数进行处理，并将处理结果以Key/Value对的形式输出，之后，Hadoop会把Map结果根据键值合并，并将合并结果分发到集群用Reduce函数处理。这个过程中的整体通信会带来很大的网络I/O开销，尤其是在Map的开始和结束的时候，会带来一场大的“网络风暴”。同时，Hadoop会在运行时产生临时文件，从而带来很大的内存和磁盘开销。
-
-%因此，运行Hadoop的机器应具有网络吞吐量好，可用内存大，磁盘读写速度快三个特点。
-
 \subsection{HDFS的实现}
 Hadoop由HDFS、MapReduce、HBase、Hive 和ZooKeeper等成员组成。其中，HDFS 和MapReduce 是两个最基础最重要的成员。
 %http://www.cnblogs.com/liuxiaojun/archive/2010/09/06/hadoop\-001.html
@@ -186,6 +157,34 @@ HDFS是MapReduce的读写的底层实现，对MapReduce进化起着至关重要�
  \label{fig:Hadoop运行流程}
 \end{figure}
 
+\subsection{Hadoop的组成}
+Hadoop整体功能由五个子进程实现，他们分别为NameNode、SecondaryNameNode、Jobtracker、DataNode和TaskTracker，其具体功能如下：
+
+NameNode，NameNode是分布式文件系统的管理者，主要负责文件系统的命名空间，集群的配置信息和数据块的复制信息等，并将文件系统的元数据存储在内存中。
+
+SecondaryNameNode，SecondaryNameNode有两个作用，一是镜像备份，二是日志与镜像的定期合并。它会周期性的将EditLog中记录的对HDFS的操作合并到一个checkpoint中，然后清空EditLog。如果没有SecondaryNameNode的这个周期性的合并过程，那么当每次重启NameNode的时候，就会花费很长的时间。而这样周期性的合并就能减少重启的时间。同时也能保证HDFS系统的完整性。
+
+JobTracker，负责任务的接受初始化，调度以及对TaskTrackee的监控。JobTracker作为一个单独的JVM运行，对整个MapReduce程序的运行起着至关重要的作用。
+
+DataNode，负责为响应来自HDFS客户机的读写请求。它们还响应创建、删除和复制来自NameNode的块的命令。并与NameNode通过心跳包来维持联系。DataNode，负责为响应来自是文件实际存储的位置，它将块(Block)的元数据信息存储在本地文件系统中，周期性地将所有的Block信息发给NameNode。
+
+TaskTrackee，运行作业划分后的任务。
+
+其中NameNode、SecondaryNameNode和Jobtracker运行在Master节点上，DataNode和TaskTracker运行在Slave节点上。
+
+本文中，因为实验环境限制，Hadoop运行模式为伪分布式，即五个子进程均处于同一宿主机上。如图\ref{fig:五个子进程}
+
+\begin{figure}[h]
+ \centering
+ \includegraphics[width=0.9\textwidth]{五个子进程}
+ \caption{五个子进程}
+ \label{fig:五个子进程}
+\end{figure}
+%Hadoop基于SSH协议管理集群，节点间通过HDFS传输文件，程序运行时，Hadoop中的JobTracker守护进程负责调度节点，将Map和Reduce按照一定的规则分发到节点上的TaskTracker进程中，TaskTracker进程根据编写好的Map函数和Reduce函数从HDFS上获取数据并对其做进一步的处理。
+
+%Mapper将HDFS中的文件按照事先编写好的Map函数进行处理，并将处理结果以Key/Value对的形式输出，之后，Hadoop会把Map结果根据键值合并，并将合并结果分发到集群用Reduce函数处理。这个过程中的整体通信会带来很大的网络I/O开销，尤其是在Map的开始和结束的时候，会带来一场大的“网络风暴”。同时，Hadoop会在运行时产生临时文件，从而带来很大的内存和磁盘开销。
+
+%因此，运行Hadoop的机器应具有网络吞吐量好，可用内存大，磁盘读写速度快三个特点。
 
 \subsection{Hadoop的特点}
 Hadoop是面向大型集群实现MapReduce方法而设计的编程框架，其实现具有以下几个特点。

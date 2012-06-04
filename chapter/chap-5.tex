@@ -1,24 +1,14 @@
-\chapter{总结与展望}
+\chapter{本文总结}
 \label{chap:5}
 
-\section{本文总结}
 本文通过对基于Hadoop实现的MapReduce编程框架的介绍，详述了MapReduce编程思想及Hadoop的实现过程，并在此基础上使用两种实现方式实现了Web访问日志程序的编写与其性能分析。
 
 根据第三章的测试和第四章的分析，可以得出以下四个结论：
 
 \begin{enumerate}
-\item MapReduce运行效率高，分布式程序编写简单，是个优秀的编程框架。
-\item I/O可能会造成MapReduce性能瓶颈
-\item 现阶段，原生Java比Streaming效率高
-\item MapReduce程序编写中，Key的选择对数据合并、Reduce分发有着至关重要的作用。
+\item MapReduce运行效率高，是个切实可行的分布式编程框架。MapReduce分布式程序编写简单，开发难度低，利用Streaming和Pipes可以快捷的将原有软件进行移植。
+\item Hadoop作为一款开源软件，从底层实现了MapReduce框架，具有一定的扩展性、容错容灾性，是一款成熟的MapReduce实现软件。
+\item 节点机的本地I/O和网络传输可能会造成MapReduce性能瓶颈，在大集群中，这种瓶颈会变得尤为明显。何合理的设计集群，合理的对HDFS进行配置，对提高集群间效率有着不可忽视的作用。
+\item 由于Streaming的Map结果合并部分处理不理想，导致程序I/O量较大且Reduce压力较大。因此现阶段，原生Java比Streaming效率高。
+\item MapReduce程序编写中，Key的选择对数据合并、Reduce分发有着至关重要的作用。编程中，开发者可以利用数据的分布规律和一定的开发技巧将Key打散，以便更好地利用各分布节点。
 \end{enumerate}
-
-\section{进一步的工作}
-
-
-
-\begin{enumerate}
-\item 使用不同的Hadoop调度机制，测试其对集群的影响，找出并总结其调度方式所对应的应用场景。
-\item 找出Streaming中负责数据合并的部分，理解其处理过程并进行适当优化。
-\end{enumerate}
-

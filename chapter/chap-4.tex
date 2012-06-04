@@ -30,24 +30,51 @@ Hadoop程序运行时，会有进程监控节点资源，并将系统中的空�
 但由于调度机制在单机为分布式下的执行过于简单，其调度结果不具有参考价值，故在本文中不予以进一步的讨论。
 
 \section{Hadoop运行机制对MapReduce性能的影响}
-\subsection{原生Java}
-通过第三章的测试结果可以看出，原生Java程序运行时，Map在经过一次大量的读操作之后，其写操作和Reduce的读写操作均经过合并优化。Map的结果被很好的合并，并交给了Reducer进行处理。程序运行效率非常高。
+由于Hadoop提供了类库，所有操作均可通过接口实现，且对Hadoop内部透明，方便数据合并及优化，降低了I/O压力，性能损失很小。而Streaming方式运行的程序，对Hadoop内部不透明，Map的结果没有被很好的优化并缓存，造成了Reduce的操作量变大，运行时间变长，拉底了整体效率。如图\ref{fig:对比图1}所示：
 
-由于Hadoop提供了类库，所有操作均可通过接口实现，且对Hadoop内部透明，方便数据合并及优化，降低了I/O压力，性能损失很小。
+\begin{figure}[h]
+ \centering
+ \includegraphics[width=1\textwidth]{对比图1}
+ \caption{对比图1}
+ \label{fig:对比图1}
+\end{figure}
 
-\subsection{基于Streaming的实现}
-通过第三章的的测试结果可以看出，基于Streaming的实现，Python的运行时间随着文件的增大逐渐比Java长，性能变差的主要是因为Map的结果没有进行combine。从表可以看出，Streaming中的Map和Reduce结果没有经过任何Combine，直接存入本地磁盘，从而造成了大量的空间浪费，增大了I/O负担，进入Reduce进一步处理的数据没有经过合并，造成性能损失。
+同时，通过第三章中Hadoop Counter记录的数据可以看出，原生Java程序运行时，Map在经过一次大量的读操作之后，其运行结果被很好的合并，缓存至本地，之后交给Reducer进行处理，程序整体运行效率非常高，通过sar监控，CPU的占用率一直处于100\%。
 
-以处理1亿条日志为例，从表可以得出，Streaming的实现与Java相比，写入量增大约100倍，读入量增大约10万倍，内存使用量增大约3倍，Reduce函数输入量增大了约15万倍，造成了性能损失。
+而Streaming中，Map的结果没有进行combine。Map函数所输出的结果集被直接存入本地磁盘，造成了大量的空间浪费，同时也增大了节点机的I/O负担。在Reduce阶段，由于Map结果没有优化，Reduce函数的Shuffle阶段必须从硬盘中拉取中间数据，Reduce处理数据的量也大大增加，造成了极大的性能损失，这种性能损失随着输入文件的增大。如图\ref{fig:对比图2}所示：
 
-由此可见，MapReduce框架中的输入输出优化、缓存和合并机制是MapReduce程序运行效率的关键。
+\begin{figure}[h]
+ \centering
+ \includegraphics[width=1\textwidth]{对比图2}
+ \caption{对比图2}
+ \label{fig:对比图2}
+\end{figure}
+
+
+以处理1亿条日志为例，从表\ref{tab:1亿}可以看出，Streaming的实现与Java相比，写入量增大约100倍，读入量增大约10万倍，内存使用量增大约3倍，Reduce函数输入量增大了约15万倍，造成了性能损失。
+
+\begin{table}[htbp]
+ \caption{\label{tab:1亿}处理1亿条日志，Hadoop Counter指数对比（节选）}
+ \centering
+ \begin{tabular}{rccccc}
+  \toprule
+  Log大小 & 本地写 & 本地读 & 合并输入 & 合并输出 & Reduce输入\\
+  \midrule
+  Java & 13,963,723 & 5,838 & 100,000,000 & 648 & 648 \\
+  Streaming & 1,414,279,852 & 700,000,054 & 0 & 0 & 100,000,000 \\
+  \bottomrule
+ \end{tabular}
+\end{table}
+
+
+由此可见，MapReduce框架中的输入输出优化、缓存和合并机制对MapReduce程序运行效率有着至关重要的作用。
 
 \section{节点计算能力对MapReduce性能的影响}
 Hadoop中，作业在TaskTracker上执行，TaskTracker的计算能力直接影响着Hadoop的整体性能。MapReduce是分布式计算框架，节点之间的通信通过网络传输。在Map和Reduce过程中，Hadoop产生了大量的网络和磁盘I/O，尤其是在Mapper和Reducer结束时，会引起数据量极大的“网络风暴”，这在实际生产环境中会给网卡和交换机带来很大的压力，若配置不当，将会成为MapReduce的瓶颈。
 
 同时，在Hadoop运行过程中，Reduce在shuffle阶段对下载来的Map数据，并不是立刻就写入磁盘的，而是会先缓存在内存中，然后当使用内存达到一定量的时候才刷入磁盘，这就要求节点机有足够大的内存去缓存数据，默认情况下，reduce会使用其heapsize的70\%来在内存中缓存数据。内存的大小决定了缓存数量的多少，减少不必要的I/O。
 
-磁盘读写速度也是MapReduce中影响性能的一个重要指标，在Map阶段，Hadoop会将Map的中间结果保存在节点本地磁盘，因为中间结果是临时的，不需要写多份。本地磁盘的读写I/O速度在某些应用中也会成为MapReduce程序的瓶颈。
+磁盘读写速度也是MapReduce中影响性能的一个重要指标，在Map阶段，Hadoop会将Map的中间结果保存在节点本地磁盘，便于Reduce阶段重用。因此，本地磁盘的读写I/O速度在某些应用中也会成为MapReduce程序的瓶颈。
 
 另外，在实际生产环境中，节点计算之间的计算能力会有略微的不同，默认的Hadoop调度器会使作业运行时出现性能短板，这种短板在异构环境中尤为明显。
 
@@ -56,7 +83,14 @@ Hadoop中，作业在TaskTracker上执行，TaskTracker的计算能力直接影�
 
 但实际开发中，Key的分布并不一定是均匀的，极端情况下，所有数据共享一个Key，后果是reduce任务只会在集群其中一个节点上运行，不仅没有利用好集群处理能力，反倒因为大量数据集中而导致计算效率低下，降低程序整体运行效率。
 
-作为了解决这个问题，程序员需要在编程时尽量选择分布均匀的参数作为Key，或者使用其他方法将Key打散。下文以Web日志处理中的处理UV为例，描述了一种打散Key的方法。
+作为了解决这个问题，程序员需要在编程时尽量选择分布均匀的参数作为Key，或者使用其他方法将Key打散。下文以Web日志处理中的处理UV为例，描述了一种打散Key的方法。具体实现流程如图\ref{fig:MapReduce-key选择}：
+
+\begin{figure}[!h]
+ \centering
+ \includegraphics[width=1\textwidth]{MapReduce-key选择}
+ \caption{MapReduce-key选择MapReduce-key选择}
+ \label{fig:MapReduce-key选择}
+\end{figure}
 
 UV是独立访客 (unique visitor)的缩写，对于网站的用户粘度和回头率统计有着至关重要的作用。
 
@@ -66,9 +100,7 @@ UV是独立访客 (unique visitor)的缩写，对于网站的用户粘度和回�
 
 在Reduce阶段，Reducer接收到Key/Value对时，可以对Cookie值进行判断，若uid为空，则访客数+1，反之则该uid的统计数+1。
 
-具体实现流程如下图：
-
 实际生产环境中，Key的打散和控制还有其他多种方法，如将字符串转换为整形数字提高处理速度、或者将一个MapReduce操作划分成两份MapReduce程序去执行。具体使用方法应该根据应用程序的要求来确定，在此不一一赘述。
 
 \section{本章小结}
-本章通过分析Hadoop运行过程和运行机制，结合第\ref{chap:3}章中的测试结果，
+本章通过分析Hadoop运行过程和运行机制，结合第\ref{chap:3}章中的测试结果，分析了Hadoop运行时可能存在的一些瓶颈。并根据其运行机制在编程上提出了一些建议。对基于Hadoop的MapReduce程序开发具有一定的参考价值。
