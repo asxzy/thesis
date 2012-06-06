@@ -1,11 +1,11 @@
 \chapter{开发背景介绍}
 \label{chap:2}
 
-\section{MapReduce简介}
-\subsection{什么是MapReduce}
+\section[MapReduce简介]{MapReduce简介\cite{paper:Google-MapReduce}}
+\subsection{MapReduce简介}
 Google的很多程序员为了处理海量的原始数据，已经实现了数以百计的、专用的计算方法。这些计算方法用来处理大量的原始数据，比如，文档抓取（类似网络爬虫的程序）、Web请求日志等等；也为了计算处理各种类型的衍生数据，比如倒排索引、Web文档的图结构的各种表示形势、每台主机上网络爬虫抓取的页面数量的汇总、每天被请求的最多的查询的集合等等。大多数这样的数据处理运算在概念上很容易理解。然而由于输入的数据量巨大，因此要想在可接受的时间内完成运算，只有将这些计算分布在成百上千的主机上。如何处理并行计算、如何分发数据、如何处理错误？所有这些问题综合在一起，需要大量的代码处理，因此也使得原本简单的运算变得难以处理。
 
-为了解决上述复杂的问题，Google设计了一个新的抽象模型，使用这个抽象模型，我们只要表述我们想要执行的简单运算即可，而不必关心并行计算、容错、数据分布、负载均衡等复杂的细节，这些问题都被封装在了一个库里面。设计这个抽象模型的灵感来自Lisp和许多其他函数式语言的Map和Reduce的原语。我们意识到我们大多数的运算都包含这样的操作：在输入数据的“逻辑”记录上应用Map操作得出一个中间key/value pair集合，然后在所有具有相同key值的value值上应用Reduce操作，从而达到合并中间的数据，得到一个想要的结果的目的。使用MapReduce模型，再结合用户实现的Map和Reduce函数，用户可以非常容易的实现大规模并行化计算；通过MapReduce模型自带的“再次执行”（re-execution）功能，也提供了初级的容灾实现方案。Google将这种抽象模型做以总结，并于2004在OSDI国际会议上提出，最终风靡全球。
+为了解决上述复杂的问题，Google设计了一个新的抽象模型，使用这个抽象模型，我们只要表述我们想要执行的简单运算即可，而不必关心并行计算、容错、数据分布、负载均衡等复杂的细节，这些问题都被封装在了一个库里面。设计这个抽象模型的灵感来自Lisp和许多其他函数式语言的Map和Reduce的原语。我们意识到我们大多数的运算都包含这样的操作：在输入数据的“逻辑”记录上应用Map操作得出一个中间key/value pair集合，然后在所有具有相同key值的value值上应用Reduce操作，从而达到合并中间的数据，得到一个想要的结果的目的。使用MapReduce模型，再结合用户实现的Map和Reduce函数，用户可以非常容易的实现大规模并行化计算；通过MapReduce模型自带的“再次执行”（re-execution）功能，也提供了初级的容灾实现方案。Google将这种抽象模型做以总结，并于2004在OSDI国际会议上提出\cite{paper:Google-MapReduce}，最终风靡全球。
 
 以MapReduce为模型编写的程序能自动地在大规模的普通机器上实现并行化处理。这个系统在运行时需要关注的细节有：分割输入数据，在机群上的调度，机器的错误处理，管理机器之间必要的通信。这样就可以让那些没有并行分布式处理系统经验的程序员使用大量分布式系统的资源。MapReduce可以灵活调整，使其在由普通机器组成的机群上实现运行：一个典型的MapReduce可以计算处理几千台机器上的以TB计算的数据。程序员发现这个系统非常好用：已经实现了数以百计的MapReduce程序，每天在Google的机群上都有1000多个MapReduce程序在执行。
 
@@ -36,7 +36,7 @@ MapReduce的实现过程并不复杂，图\ref{fig:MapReduce}向我们展示了M
 \item 当所有的map和reduce任务都完成了，管理者唤醒用户程序。在这个时候，在用户程序里的MapReduce调用返回到用户代码。
 \end{enumerate}
 
-在成功完成之后，MapReduce执行的输出存放在R个输出文件中(每一个reduce任务产生一个由用户指定名字的文件)。一般，用户不需要合并这R个输出文件成一个文件--他们经常把这些文件当作一个输入传递给其他的MapReduce调用，或者在可以处理多个分割文件的分布式应用中使用他们。
+在成功完成之后，MapReduce执行的输出存放在R个输出文件中（每一个reduce任务产生一个由用户指定名字的文件）。一般，用户不需要合并这R个输出文件成一个文件--他们经常把这些文件当作一个输入传递给其他的MapReduce调用，或者在可以处理多个分割文件的分布式应用中使用他们。
 
 \subsection{MapReduce的优点}
 相比于常规分布式程序，MapReduce架构中的分布式程序具有以下几个优点：
@@ -51,17 +51,16 @@ MapReduce的实现过程并不复杂，图\ref{fig:MapReduce}向我们展示了M
 \end{enumerate}
 
 
-\section{Hadoop简介}
+\section[Hadoop简介]{Hadoop简介\cite{book:Hadoop}}
 
-\subsection{什么是Hadoop}
+\subsection{Hadoop简介}
 Hadoop是Apache下的一个开源软件，它作为一个开源的软件平台使编写和运行用于处理海量数据的应用程序更加容易。Hadoop框架的核心思想是MapReduce。MapReduce是一个用于进行大数据量计算的编程模型，同时也是一种高效的任务调度模型，它将一个任务分成很多更细粒度的子任务，这些子任务能够在空闺的处理节点之间调度，使处理速度越快的节点处理越多的任务，从而避免处理速度慢的节点延长整个任务的完成时间。
 
 Hadoop是一个能够对大量数据进行分布式处理的软件框架。但是Hadoop是以一种可靠、高效、可伸缩的方式进行处理的。Hadoop是可靠的，因为它假设计算元素和存储会失败，因此它维护多个工作数据副本，确保能够针对失败的节点重新分布处理。Hadoop是高效的，因为它以并行的方式工作，通过并行处理加快处理速度。Hadoop还是可伸缩的，能够处理PB级数据。此外，Hadoop依赖于社区服务器，因此它的成本比较低，任何人都可以使用。
 
-\subsection{HDFS的实现}
 Hadoop由HDFS、MapReduce、HBase、Hive 和ZooKeeper等成员组成。其中，HDFS 和MapReduce 是两个最基础最重要的成员。
-%http://www.cnblogs.com/liuxiaojun/archive/2010/09/06/hadoop\-001.html
 
+\subsection[HDFS的实现]{HDFS的实现\cite{site:hdfs}}
 HDFS是分布式计算的存储基石，Hadoop的分布式文件系统和其他分布式文件系统有很多类似的特质。分布式文件系统基本的几个特点：
 
 \begin{enumerate}
@@ -123,7 +122,7 @@ HDFS是分布式计算的存储基石，Hadoop的分布式文件系统和其他�
 
 HDFS是MapReduce的读写的底层实现，对MapReduce进化起着至关重要的作用。
 
-\subsection{Hadoop的运行过程}
+\subsection[Hadoop的运行过程]{Hadoop的运行过程\cite{book:Hadoop}}
 在Hadoop的系统中，会有一台Master，主要负责NameNode的工作以及JobTracker的工作。JobTracker的主要职责就是启动、跟踪和调度各个Slave的任务执行。还会有多台Slave，每一台Slave通常具有DataNode的功能并负责TaskTracker的工作。TaskTracker根据应用要求来结合本地数据执行Map任务以及Reduce任务。
 
 具体如图\ref{fig:Hadoop运行流程}所示，过程如下：
@@ -202,18 +201,18 @@ Hadoop是面向大型集群实现MapReduce方法而设计的编程框架，其�
 \end{enumerate}
 
 \subsection{MapReduce在Hadoop中的三种实现方式及特点}
-\begin{enumerate}
-\item 原生Java
+
+1. 原生Java
 Hadoop是用Java编写的，所有Hadoop文件系统间的相互作用都是由Java API调解的。 举个例子，文件系统的shell就是一个Java应用，它使用Java文件系统类来提供文件系统操作。
 
 同时，Hadoop提供了一套完整的Java类，用以实现MapReduce、HDFS操作及Hadoop配置。实际开发过程中，开发者可以直接引用这些类，达到快速开发的目的。
 
-\item Streaming
+2. Streaming
 Streaming框架允许任何程序语言实现的程序在Hadoop MapReduce中使用，方便已有程序向Hadoop平台移植。其原理是用Java实现一个包装用户程序的MapReduce程序，该程序负责调用MapReduce Java接口获取key/value对输入，创建一个新的进程启动包装的用户程序，将数据通过管道传递给包装的用户程序处理，然后调用MapReduce Java接口将用户程序的输出切分成key/value对输出。
 
 Streaming天生适合用于文本处理(到0.21.0版本时，Streaming也可以处理二进制流)，在文本模式下使用时，它有一个数据的行视图。map的输入数据通过标准输入流传递给map函数，并且是一行一行地传输，最后将结果行写到标准输出。map输出的键/值对是以一个制表符分隔的行，它以这样的形式写到标准输出。reduce 函数的输入格式相同——通过制表符来分隔的键/值对——并通过标准输入流进行传输。reduce函数从标准输入流中读取输入行，该输入已由Hadoop框架根据键排过序，最后将结果写入标准输出。
 
-值得一提的是Streaming和Java MapReduce API之间的设计差异。Java API控制的map函数一次只能处理一条记录。针对输入数据中的每一条记录，该框架均需调用Mapper的map()方法来处理，然而在Streaming中，map程序可以自己决定如何处理输入数据，例如，它可以轻松读取并同时处理若干行，因为它受读操作的控制。用户的Java map实现的是“推”记录方式，但它依旧可以同时处理多行，具体做法是通过mapper中实例变量将之前读取的多行汇聚在一起。在这种情况下，需要实现close()方法，以便知道何时读到最后一条记录，进而完成对最后一组记录行的处理。
+Streaming和Java MapReduce API在设计时有一些差异：Java API控制的map函数一次只能处理一条记录。针对输入数据中的每一条记录，该框架均需调用Mapper的map()方法来处理，然而在Streaming中，map程序可以自己决定如何处理输入数据，例如，它可以轻松读取并同时处理若干行，因为它受读操作的控制。用户的Java map实现的是“推”记录方式，但它依旧可以同时处理多行，具体做法是通过mapper中实例变量将之前读取的多行汇聚在一起。在这种情况下，需要实现close()方法，以便知道何时读到最后一条记录，进而完成对最后一组记录行的处理。
 
 如下图\ref{fig:Streaming}所示，其中Streaming Java Mapper通过管道将key/value输入传递给用户mapper程序的标准输入，并获取用户mapper程序的标准输出；Streaming Java Reducer调用Java接口通过InputFormat从HDFS获取输入数据，从管道将key/value传递给用户 reducer程序的标准输入，获取用户reducer程序的标准输出并调用Java接口通过OutputFormat输出数据；用户mapper和reducer程序负责处理数据，都从标准输入读取数据，向标准输出写入数据。
 
@@ -228,17 +227,21 @@ Streaming天生适合用于文本处理(到0.21.0版本时，Streaming也可以�
 
 Streaming有如下一些优点： 
 
-1)开发效率高，很多现有程序（包括脚本）能够方便的移植到hadoop平台上去运行 
+\begin{enumerate}
+\item 开发效率高，很多现有程序（包括脚本）能够方便的移植到hadoop平台上去运行 
 
-2)某些程序运行效率高，对于某些cpu密集型程序，如果map-reduce程序用C++编写，效率有可能提高 
+\item 某些程序运行效率高，对于某些cpu密集型程序，如果map-reduce程序用C++编写，效率有可能提高 
+\end{enumerate}
 
 Streaming存在如下一些不足：
 
-1) Streaming中的mapper和reducer默认只能向标准输出写数据，不能方便地处理多路输出。 
+\begin{enumerate}
+\item Streaming中的mapper和reducer默认只能向标准输出写数据，不能方便地处理多路输出。 
 
-2) 用Java编写的MapReduce程序直接处理框架从输入数据中得到的key/value对，在Streaming中Java程序不直接处理key/value对，而是通过管道写到mapper程序的标准输入，mapper程序再从key/tvalue中解析出key/value对，这个过程多了两次数据拷贝和解析（分割），带来一定的开销。对于reducer也是一样的。
+\item 用Java编写的MapReduce程序直接处理框架从输入数据中得到的key/value对，在Streaming中Java程序不直接处理key/value对，而是通过管道写到mapper程序的标准输入，mapper程序再从key/tvalue中解析出key/value对，这个过程多了两次数据拷贝和解析（分割），带来一定的开销。对于reducer也是一样的。
+\end{enumerate}
 
-\item Pipes
+3. Pipes
 
 Hadoop的Pipes是Hadoop MapReduce的C++接口代称。不同于使用标准输入和输出来实现map代码和reduce代码之间的Streaming，Pipes使用套接字作为tasktracker与C++版本map函数或reduce函数的进程之间的通道。
 
@@ -248,8 +251,7 @@ Hadoop的Pipes是Hadoop MapReduce的C++接口代称。不同于使用标准输�
 
 因Pipes通过trasktracker子进程进行通信，但由于Hadoop提供的C++接口功能过于简单，开发负担大，故本文中仅对原生Java和Streaming的实现做性能对比。
 
-\end{enumerate}
-\subsection{Hadooop计数器及其含义}
+\subsection[Hadooop计数器及其含义]{Hadooop计数器及其含义\cite{site:hadoop-counter}}
 Hadoop里有一个很常用的工具叫计数器（Counter）, 主要用来记录Hadoop job的运行状态。通过计数器，用户可以观察MapReduce job运行期间的各个细节数据，大多数优化都是基于计数器的数值表现。本文中后期的性能分析主要依靠Hadoop计数器提供的数据完成。
 
 Hadoop job提供的默认计数器分为五个组分别是Job Counters、File Input Format Counters、File Output Format Counters、FileSystem Counters和Map-Reduce Framework其包含的数据和含义如下：
@@ -304,7 +306,6 @@ HDFS\_BYTES\_WRITTEN：Reduce的最终结果都会写入HDFS，就是一个job�
 
 这个计数器包含了相当多地job执行细节数据。这里需要有个概念认识是：一般情况下，record就表示一行数据，而相对地byte表示这行数据的大小是多少，这里的计数器表示经过reduce merge后像这样的输入形式{“aaa”, [5, 8, 2, …]}。 
 
-
 Combine input records：Combiner是为了减少尽量减少需要拉取和移动的数据，所以combine输入条数与map的输出条数是一致的。 
 
 Combine output records：经过Combiner后，相同key的数据经过压缩，在map端自己解决了很多重复数据，表示最终在map端中间文件中的所有条目数 
@@ -339,11 +340,11 @@ SPLIT\_RAW\_BYTES
 \end{enumerate}
 	
 	
-\section{Web访问日志简介}
+\section[Web访问日志简介]{Web访问日志简介\cite{site:weblog}}
 \subsection{什么是Web访问日志}
 Web访问日志是Web服务器的运行记录文档，当用户访问一个网站时，服务器上的Web服务会接受该用户的请求，并将用户的请求信息记录并保存下来。目前常见的Web访问日志格式主要由两类，一类是Apache的NCSA日志格式，另一类是IIS的W3C日志格式。NCSA格式又分为NCSA普通日志格式（CLF）和NCSA扩展日志格式（ECLF）两类，目前最常用的是NCSA扩展日志格式（ECLF）及基于自定义类型的Apache日志格式；而W3C扩展日志格式（ExLF）具备了更为丰富的输出信息，但目前的应用并不广泛。目前，大多数网站使用NCSA日志格式来存储日志。
 
-Nginx是一款基于Epoll模型的web服务程序，近年来发展迅猛，截止2012年5月，Nginx已经占据Web软件10.32\%的份额\cite{site:netcraft_nginx}，Nginx的默认日志为Apache的NCSA扩展日志格式（ECLF），本实验中所用的日志为Nginx默认生成的日志。
+Nginx是一款基于Epoll模型的web服务程序\cite{site:nginx}，近年来发展迅猛，截止2012年5月，Nginx已经占据Web软件10.32\%的份额\cite{site:netcraft_nginx}，Nginx的默认日志为Apache的NCSA扩展日志格式（ECLF），本实验中所用的日志为Nginx默认生成的日志。
 
 \subsection{NCSA扩展日志格式的组成}
 这是一个最常见的基于NCSA扩展日志格式（ECLF）的Nginx日志样例：
