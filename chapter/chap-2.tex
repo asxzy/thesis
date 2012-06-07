@@ -1,16 +1,16 @@
 \chapter{开发背景介绍}
 \label{chap:2}
 
-\section[MapReduce简介]{MapReduce简介\cite{paper:Google-MapReduce}}
-\subsection{MapReduce简介}
+\section{MapReduce框架}
+\subsection[MapReduce简介]{MapReduce简介\cite{paper:Google-MapReduce}}
 Google的很多程序员为了处理海量的原始数据，已经实现了数以百计的、专用的计算方法。这些计算方法用来处理大量的原始数据，比如，文档抓取（类似网络爬虫的程序）、Web请求日志等等；也为了计算处理各种类型的衍生数据，比如倒排索引、Web文档的图结构的各种表示形势、每台主机上网络爬虫抓取的页面数量的汇总、每天被请求的最多的查询的集合等等。大多数这样的数据处理运算在概念上很容易理解。然而由于输入的数据量巨大，因此要想在可接受的时间内完成运算，只有将这些计算分布在成百上千的主机上。如何处理并行计算、如何分发数据、如何处理错误？所有这些问题综合在一起，需要大量的代码处理，因此也使得原本简单的运算变得难以处理。
 
-为了解决上述复杂的问题，Google设计了一个新的抽象模型，使用这个抽象模型，我们只要表述我们想要执行的简单运算即可，而不必关心并行计算、容错、数据分布、负载均衡等复杂的细节，这些问题都被封装在了一个库里面。设计这个抽象模型的灵感来自Lisp和许多其他函数式语言的Map和Reduce的原语。我们意识到我们大多数的运算都包含这样的操作：在输入数据的“逻辑”记录上应用Map操作得出一个中间key/value pair集合，然后在所有具有相同key值的value值上应用Reduce操作，从而达到合并中间的数据，得到一个想要的结果的目的。使用MapReduce模型，再结合用户实现的Map和Reduce函数，用户可以非常容易的实现大规模并行化计算；通过MapReduce模型自带的“再次执行”（re-execution）功能，也提供了初级的容灾实现方案。Google将这种抽象模型做以总结，并于2004在OSDI国际会议上提出\cite{paper:Google-MapReduce}，最终风靡全球。
+为了解决上述复杂的问题，Google设计了一个新的抽象模型，使用这个抽象模型，程序员只要表述其想要执行的简单运算即可，而不必关心并行计算、容错、数据分布、负载均衡等复杂的细节，这些问题都被封装在了一个库里面。设计这个抽象模型的灵感来自Lisp和许多其他函数式语言的Map和Reduce的原语。MapReduce的设计者意识到大多数的运算都包含这样的操作：在输入数据的“逻辑”记录上应用Map操作得出一个中间key/value pair集合，然后在所有具有相同key值的value值上应用Reduce操作，从而达到合并中间的数据，得到一个想要的结果的目的。使用MapReduce模型，再结合用户实现的Map和Reduce函数，用户可以非常容易的实现大规模并行化计算；通过MapReduce模型自带的“再次执行”（re-execution）功能，也提供了初级的容灾实现方案。Google将这种抽象模型做以总结，并于2004在OSDI国际会议上提出，最终风靡全球。
 
 以MapReduce为模型编写的程序能自动地在大规模的普通机器上实现并行化处理。这个系统在运行时需要关注的细节有：分割输入数据，在机群上的调度，机器的错误处理，管理机器之间必要的通信。这样就可以让那些没有并行分布式处理系统经验的程序员使用大量分布式系统的资源。MapReduce可以灵活调整，使其在由普通机器组成的机群上实现运行：一个典型的MapReduce可以计算处理几千台机器上的以TB计算的数据。程序员发现这个系统非常好用：已经实现了数以百计的MapReduce程序，每天在Google的机群上都有1000多个MapReduce程序在执行。
 
-\subsection{MapReduce的实现过程}
-MapReduce的实现过程并不复杂，图\ref{fig:MapReduce}向我们展示了MapReduce操作的全部流程。
+\subsection[MapReduce的实现过程]{MapReduce的实现过程\cite{paper:Google-MapReduce}}
+MapReduce的实现过程并不复杂，图\ref{fig:MapReduce}展示了MapReduce操作的全部流程。
 \begin{figure}[h]
  \centering
  \includegraphics[width=1\textwidth]{MapReduce}
@@ -51,9 +51,9 @@ MapReduce的实现过程并不复杂，图\ref{fig:MapReduce}向我们展示了M
 \end{enumerate}
 
 
-\section[Hadoop简介]{Hadoop简介\cite{book:Hadoop}}
+\section{Hadoop}
 
-\subsection{Hadoop简介}
+\subsection[Hadoop简介]{Hadoop简介\cite{book:Hadoop}}
 Hadoop是Apache下的一个开源软件，它作为一个开源的软件平台使编写和运行用于处理海量数据的应用程序更加容易。Hadoop框架的核心思想是MapReduce。MapReduce是一个用于进行大数据量计算的编程模型，同时也是一种高效的任务调度模型，它将一个任务分成很多更细粒度的子任务，这些子任务能够在空闺的处理节点之间调度，使处理速度越快的节点处理越多的任务，从而避免处理速度慢的节点延长整个任务的完成时间。
 
 Hadoop是一个能够对大量数据进行分布式处理的软件框架。但是Hadoop是以一种可靠、高效、可伸缩的方式进行处理的。Hadoop是可靠的，因为它假设计算元素和存储会失败，因此它维护多个工作数据副本，确保能够针对失败的节点重新分布处理。Hadoop是高效的，因为它以并行的方式工作，通过并行处理加快处理速度。Hadoop还是可伸缩的，能够处理PB级数据。此外，Hadoop依赖于社区服务器，因此它的成本比较低，任何人都可以使用。
@@ -74,7 +74,7 @@ HDFS是分布式计算的存储基石，Hadoop的分布式文件系统和其他�
 \begin{figure}[h]
  \centering
  \includegraphics[width=1\textwidth]{HDFS架构}
- \caption{HDFS架构}
+ \caption{HDFS整体架构图}
  \label{fig:HDFS架构}
 \end{figure}
 
@@ -176,7 +176,7 @@ TaskTrackee，运行作业划分后的任务。
 \begin{figure}[h]
  \centering
  \includegraphics[width=0.9\textwidth]{五个子进程}
- \caption{五个子进程}
+ \caption{五个子进程与操作系统的结构}
  \label{fig:五个子进程}
 \end{figure}
 %Hadoop基于SSH协议管理集群，节点间通过HDFS传输文件，程序运行时，Hadoop中的JobTracker守护进程负责调度节点，将Map和Reduce按照一定的规则分发到节点上的TaskTracker进程中，TaskTracker进程根据编写好的Map函数和Reduce函数从HDFS上获取数据并对其做进一步的处理。
@@ -220,7 +220,7 @@ Streaming和Java MapReduce API在设计时有一些差异：Java API控制的map
 \begin{figure}[h]
  \centering
  \includegraphics[width=1\textwidth]{Streaming}
- \caption{Streaming}
+ \caption{Streaming运行流程图}
  \label{fig:Streaming}
 \end{figure}
 
@@ -245,13 +245,13 @@ Streaming存在如下一些不足：
 
 Hadoop的Pipes是Hadoop MapReduce的C++接口代称。不同于使用标准输入和输出来实现map代码和reduce代码之间的Streaming，Pipes使用套接字作为tasktracker与C++版本map函数或reduce函数的进程之间的通道。
 
-应用程序对Hadoop C++库链接提供了一个与tasktracker 子进程进行通信的简单封装。通过扩展HadoopPipes命名空间中定义的mapper和reducer两个类，我们定义了map()和reduce()方法，同时我们提供各种情况下map()和reduce()方法的实现。这些方法采用了上下文对象(MapContext类型或ReduceContext类型)，进而提供了读取输入数据和写入输出数据，以及通过JobConf类来访问作业配置信息的功能。
+应用程序对Hadoop C++库链接提供了一个与tasktracker 子进程进行通信的简单封装。通过扩展HadoopPipes命名空间中定义的mapper和reducer两个类，定义了map()和reduce()方法，同时MapReduce提供各种情况下map()和reduce()方法的实现。这些方法采用了上下文对象(MapContext类型或ReduceContext类型)，进而提供了读取输入数据和写入输出数据，以及通过JobConf类来访问作业配置信息的功能。
 
 与Java接口不同，C++接口中的键和值按字节缓冲，用标准模板库(Standard Template Library，STL)中的字符串表示。这样做简化了接口，但把更重的负担留给了应用程序开发人员，因为开发人员必须来回封送(marshall)字符串与特定应用领域内使用的具体类型。
 
 因Pipes通过trasktracker子进程进行通信，但由于Hadoop提供的C++接口功能过于简单，开发负担大，故本文中仅对原生Java和Streaming的实现做性能对比。
 
-\subsection[Hadooop计数器及其含义]{Hadooop计数器及其含义\cite{site:hadoop-counter}}
+\subsection[Hadoop计数器及其含义]{Hadoop计数器及其含义\cite{site:hadoop-counter}}
 Hadoop里有一个很常用的工具叫计数器（Counter）, 主要用来记录Hadoop job的运行状态。通过计数器，用户可以观察MapReduce job运行期间的各个细节数据，大多数优化都是基于计数器的数值表现。本文中后期的性能分析主要依靠Hadoop计数器提供的数据完成。
 
 Hadoop job提供的默认计数器分为五个组分别是Job Counters、File Input Format Counters、File Output Format Counters、FileSystem Counters和Map-Reduce Framework其包含的数据和含义如下：
@@ -293,7 +293,7 @@ BYTES\_READ：Map task的所有输出数据(字节)，等于各个map task的map
 
 MapReduce job执行所依赖的数据来自于不同的文件系统，这个计数器表示job与文件系统交互的读写统计 
 
-FILE\_BYTES\_READ：job读取本地文件系统的文件字节数。假定我们当前map的输入数据都来自于HDFS，那么在map阶段，这个数据应该是0。但reduce在执行前，它的输入数据是经过shuffle的merge后存储在reduce端本地磁盘中，所以这个数据就是所有reduce的总输入字节数。 
+FILE\_BYTES\_READ：job读取本地文件系统的文件字节数。假定当前map的输入数据都来自于HDFS，那么在map阶段，这个数据应该是0。但reduce在执行前，它的输入数据是经过shuffle的merge后存储在reduce端本地磁盘中，所以这个数据就是所有reduce的总输入字节数。 
 
 FILE\_BYTES\_WRITTEN：map的中间结果都会spill到本地磁盘中，在map执行完后，形成最终的spill文件。所以map端这里的数据就表示map task往本地磁盘中总共写了多少字节。与map端相对应的是，reduce端在shuffle时，会不断地拉取map端的中间结果，然后做merge并不断spill到自己的本地磁盘中。最终形成一个单独文件，这个文件就是reduce的输入文件。 
 

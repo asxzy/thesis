@@ -8,7 +8,7 @@ Hadoop程序运行时，会有进程监控节点资源，并将系统中的空�
 \begin{figure}[h]
  \centering
  \includegraphics[width=1\textwidth]{调度器}
- \caption{调度器}
+ \caption{Hadoop默认FIFO调度器}
  \label{fig:调度器}
 \end{figure}
 
@@ -27,47 +27,7 @@ Hadoop程序运行时，会有进程监控节点资源，并将系统中的空�
 
 为了解决这种应用差异性带来的性能损失，Hadoop允许用户自定义调度器。Hadoop的调度器被设计为一个可插拔的模块，用户可以根据自己实际应用要求设计调度器。
 
-现在有很多学者在研究调度相关问题，如\cite{paper:A-Dynamic-MapReduce-Scheduler-for-Heterogeneous-Workloads}。但由于调度机制在单机为分布式下的执行过于简单，其调度结果不具有参考价值，故在本文中不予以进一步的讨论。
-
-\section{Hadoop运行机制对MapReduce性能的影响}
-由于Hadoop提供了类库，所有操作均可通过接口实现，且对Hadoop内部透明，方便数据合并及优化，降低了I/O压力，性能损失很小。而Streaming方式运行的程序，对Hadoop内部不透明，Map的结果没有被很好的优化并缓存，造成了Reduce的操作量变大，运行时间变长，拉底了整体效率。如图\ref{fig:对比图1}所示：
-
-\begin{figure}[h]
- \centering
- \includegraphics[width=1\textwidth]{对比图1}
- \caption{对比图1}
- \label{fig:对比图1}
-\end{figure}
-
-同时，通过第三章中Hadoop Counter记录的数据可以看出，原生Java程序运行时，Map在经过一次大量的读操作之后，其运行结果被很好的合并，缓存至本地，之后交给Reducer进行处理，程序整体运行效率非常高，通过sar监控，CPU的占用率一直处于100\%。
-
-而Streaming中，Map的结果没有进行combine。Map函数所输出的结果集被直接存入本地磁盘，造成了大量的空间浪费，同时也增大了节点机的I/O负担。在Reduce阶段，由于Map结果没有优化，Reduce函数的Shuffle阶段必须从硬盘中拉取中间数据，Reduce处理数据的量也大大增加，造成了极大的性能损失，这种性能损失随着输入文件的增大。如图\ref{fig:对比图2}所示：
-
-\begin{figure}[h]
- \centering
- \includegraphics[width=1\textwidth]{对比图2}
- \caption{对比图2}
- \label{fig:对比图2}
-\end{figure}
-
-
-以处理1亿条日志为例，从表\ref{tab:1亿}可以看出，Streaming的实现与Java相比，写入量增大约100倍，读入量增大约10万倍，内存使用量增大约3倍，Reduce函数输入量增大了约15万倍，造成了性能损失。
-
-\begin{table}[htbp]
- \caption{\label{tab:1亿}处理1亿条日志，Hadoop Counter指数对比（节选）}
- \centering
- \begin{tabular}{rccccc}
-  \toprule
-  Log大小 & 本地写 & 本地读 & 合并输入 & 合并输出 & Reduce输入\\
-  \midrule
-  Java & 13,963,723 & 5,838 & 100,000,000 & 648 & 648 \\
-  Streaming & 1,414,279,852 & 700,000,054 & 0 & 0 & 100,000,000 \\
-  \bottomrule
- \end{tabular}
-\end{table}
-
-
-由此可见，MapReduce框架中的输入输出优化、缓存和合并机制对MapReduce程序运行效率有着至关重要的作用。
+现在有很多学者在研究调度相关问题，如LATE\cite{paper:A-Dynamic-MapReduce-Scheduler-for-Heterogeneous-Workloads}。但由于调度机制在单机为分布式下的执行过于简单，其调度结果不具有参考价值，故在本文中不予以进一步的讨论。
 
 \section{节点计算能力对MapReduce性能的影响}
 Hadoop中，作业在TaskTracker上执行，TaskTracker的计算能力直接影响着Hadoop的整体性能。MapReduce是分布式计算框架，节点之间的通信通过网络传输。在Map和Reduce过程中，Hadoop产生了大量的网络和磁盘I/O，尤其是在Mapper和Reducer结束时，会引起数据量极大的“网络风暴”，这在实际生产环境中会给网卡和交换机带来很大的压力，若配置不当，将会成为MapReduce的瓶颈。
@@ -77,6 +37,52 @@ Hadoop中，作业在TaskTracker上执行，TaskTracker的计算能力直接影�
 磁盘读写速度也是MapReduce中影响性能的一个重要指标，在Map阶段，Hadoop会将Map的中间结果保存在节点本地磁盘，便于Reduce阶段重用。因此，本地磁盘的读写I/O速度在某些应用中也会成为MapReduce程序的瓶颈。
 
 另外，在实际生产环境中，节点计算之间的计算能力会有略微的不同，默认的Hadoop调度器会使作业运行时出现性能短板，这种短板在异构环境中尤为明显。
+
+\section{Hadoop运行机制对MapReduce性能的影响}
+由于Hadoop提供了类库，所有操作均可通过接口实现，且对Hadoop内部透明，方便数据合并及优化，降低了I/O压力，性能损失很小。而Streaming方式运行的程序，对Hadoop内部不透明，Map的结果没有被很好的优化并缓存，造成了Reduce的操作量变大，运行时间变长，拉底了整体效率。如图\ref{fig:对比图1}所示：
+
+\begin{figure}[h]
+ \centering
+ \includegraphics[width=1\textwidth]{对比图1}
+ \caption{原生Java和Streaming运行时间对比图}
+ \label{fig:对比图1}
+\end{figure}
+
+同时，通过第三章中Hadoop Counter记录的数据可以看出，原生Java程序运行时，Map在经过一次大量的读操作之后，其运行结果被很好的合并，缓存至本地，之后交给Reducer进行处理，程序整体运行效率非常高，通过sar监控，CPU的占用率一直处于100\%。
+
+而Streaming中，Map的结果没有进行combine。Map函数所输出的结果集被直接存入本地磁盘，造成了大量的空间浪费，同时也增大了节点机的I/O负担。在Reduce阶段，由于Map结果没有优化，Reduce函数的Shuffle阶段必须从硬盘中拉取中间数据，Reduce处理数据的量也大大增加，造成了极大的性能损失，这种性能损失随着输入文件的增大。
+
+以处理1亿条日志为例，从表\ref{tab:1亿}可以看出，Streaming的实现与Java相比，写入量增大约100倍，读入量增大约10万倍，内存使用量增大约3倍，Reduce函数输入量增大了约15万倍，造成了性能损失。如图\ref{fig:对比图2}图\ref{fig:对比图3}所示：
+
+\begin{table}[!htbp]
+ \caption{\label{tab:1亿}处理1亿条日志，Hadoop Counter指数对比（节选）}
+ \centering
+ \begin{tabular}{rccccc}
+  \toprule
+  执行方式 & 本地写 & 本地读 & 合并输入 & 合并输出 & Reduce输入\\
+  \midrule
+  Java & 13,963,723 & 5,838 & 100,000,000 & 648 & 648 \\
+  Streaming & 1,414,279,852 & 700,000,054 & 0 & 0 & 100,000,000 \\
+  \bottomrule
+ \end{tabular}
+\end{table}
+\begin{figure}[!h]
+ \centering
+ \includegraphics[width=1\textwidth]{对比图2}
+ \caption{原生Java和Streaming本地文件写对比}
+ \label{fig:对比图2}
+\end{figure}
+
+\begin{figure}[!h]
+ \centering
+ \includegraphics[width=1\textwidth]{对比图3}
+ \caption{原生Java和Streaming本地文件读对比}
+ \label{fig:对比图3}
+\end{figure}
+
+
+由此可见，MapReduce框架中的输入输出优化、缓存和合并机制对MapReduce程序运行效率有着至关重要的作用。
+
 
 \section{实例程序编写方法对MapReduce性能的影响}
 通过Java和Streaming两种实现方式的比较，可以看出影响MapReduce较大的部分为Suffle部分，从MapReduce运行原理可以看出，Suffle部分的合并是根据Key值合并的，如何合理的选择Key值，降低Reducer的处理时间，对MapReduce程序的运行起着至关重要的作用。
@@ -88,7 +94,7 @@ Hadoop中，作业在TaskTracker上执行，TaskTracker的计算能力直接影�
 \begin{figure}[!h]
  \centering
  \includegraphics[width=1\textwidth]{MapReduce-key选择}
- \caption{MapReduce-key选择MapReduce-key选择}
+ \caption{打散Key前后程序运行流程对比}
  \label{fig:MapReduce-key选择}
 \end{figure}
 

@@ -68,14 +68,14 @@ main函数中实例化Hadoop的配置类、和Job类，并给job类的各项属�
 \begin{figure}[h]
  \centering
  \includegraphics[width=0.7\textwidth]{运行过程-java}
- \caption{运行过程-java}
+ \caption{Java程序的运行过程}
  \label{fig:运行过程-java}
 \end{figure}
 
 至此，Web日志处理的Java程序就实现了。
 
 \subsection{基于Streaming的Python实现}
-Hadoop在支持原生Java的同时也对外提供了Streaming方法，该方法把HDFS中的文件读写转化成文件流，传入外部程序处理，使得Hadoop具有处理非Java编写的程序的能力。本文选用了和Java及其类似的解释性编程语言Python，便于后期的性能测试对比。
+Hadoop在支持原生Java的同时也对外提供了Streaming方法，该方法把HDFS中的文件读写转化成文件流，传入外部程序处理，使得Hadoop具有处理非Java编写的程序的能力。本文选用了和Java极其类似的解释性编程语言Python，便于后期的性能测试对比。
 
 新建文件Mapper.py，文件首部向系统声明文件执行类型为python，又因程序使用std I/O并分割字符串，所以在头部引用sys和itemgetter。之后使用for循环语句从sys.stdin读取数据，并判断其合法性，若合法，则给value赋值1，反之赋值0，最后使用print输出Key/Value对，并以一个缩进符号分割开来。
 
@@ -87,10 +87,10 @@ Hadoop在支持原生Java的同时也对外提供了Streaming方法，该方法�
 
 其在Hadoop中的运行流程如图\ref{fig:运行过程-streaming}所示：
 
-\begin{figure}[h]
+\begin{figure}[!h]
  \centering
- \includegraphics[width=0.7\textwidth]{运行过程-streaming}
- \caption{运行过程-streaming}
+ \includegraphics[width=1\textwidth]{运行过程-streaming}
+ \caption{Streaming程序的运行过程}
  \label{fig:运行过程-streaming}
 \end{figure}
 
@@ -99,7 +99,7 @@ Hadoop在支持原生Java的同时也对外提供了Streaming方法，该方法�
 
 \section{实现效果及性能测试}
 \subsection{测试数据及方法}
-为了验证本程序的正确性和运行效率，笔者使用了9组数据，测试数据为基数为10到100,000,000，增量为十倍，共8组清洗过的有效合法日志，日志取自实际生产环境服务器，具有一定的参考价值。所有测试数据均存放在采用Hadoop默认配置的HDFS上。
+为了验证本程序的正确性和运行效率，笔者从实际生产环境服务器中获取访问日志，将其清洗整理之后，制作出100到100,000,000，增量为十倍，共7组测试数据数据。所有测试数据均存放在采用Hadoop默认配置的HDFS上。
 
 测试环境为伪分布式的单机Hadoop节点，Java和Python程序的运行均使用Hadoop默认参数执行，测试过程中，使用sar对系统资源进行监测，测试结束后，收集运行日志进行更进一步的分析。
 
@@ -120,27 +120,27 @@ hadoop dfs -cat output/java/100/part-r-00000
 在本实验中，所用测试数据是提前使用工具处理好的数据，目的在于验证程序的准确性并分析对比其运行时间。具体运行结果和运行时间如下表\ref{tab:java1}和表\ref{tab:java2}：
 
 \begin{table}[htbp]
- \caption{\label{tab:java}Java程序的Map、Reduce数量及其运行时间}
+ \caption{\label{tab:java1}Java程序的Map、Reduce数量及其运行时间}
  \centering
- \begin{tabular}{cccccc}
+ \begin{tabular}{ccccccc}
   \toprule
-  Log大小 & Map & Reduce & Map运行 & Reduce运行 & 总时间\\
-  (行) & 数量 & 数量 & 时间(ms) & 时间(ms) & 时间(ms)\\
+  Log大小 & Map & Reduce & Map运行 & Reduce运行 & 总时间 & 运行结果\\
+  (行) & 数量 & 数量 & 时间(ms) & 时间(ms) & 时间(ms) & (行)\\
   \midrule
-  100 & 1 & 1 & 460 & 1,410 & 1,870\\
-  1,000 & 1 & 1 & 240 & 1,420 & 1,660\\
-  10,000 & 1 & 1 & 770 & 1,260 & 2,030\\
-  100,000 & 1 & 1 & 2,310 & 1,170 & 3,480\\
-  1,000,000 & 7 & 1 & 17,400 & 1,510 & 18,910\\
-  10,000,000 & 67 & 1 & 164,750 & 5,400 & 170,150\\
-  100,000,000 & 648 & 1 & 1,580,020 & 14,790 & 1,594,810\\
+  100 & 1 & 1 & 460 & 1,410 & 1,870 & 100\\
+  1,000 & 1 & 1 & 240 & 1,420 & 1,660 & 1,000\\
+  10,000 & 1 & 1 & 770 & 1,260 & 2,030 & 10,000\\
+  100,000 & 1 & 1 & 2,310 & 1,170 & 3,480 & 100,000\\
+  1,000,000 & 7 & 1 & 17,400 & 1,510 & 18,910 & 1,000,000\\
+  10,000,000 & 67 & 1 & 164,750 & 5,400 & 170,150 & 10,000,000\\
+  100,000,000 & 648 & 1 & 1,580,020 & 14,790 & 1,594,810 & 100,000,000\\
   \bottomrule
  \end{tabular}
 \end{table}
 
 
 \begin{table}[htbp]
- \caption{\label{tab:java}Java程序的本地缓存相关数据统计}
+ \caption{\label{tab:java2}Java程序的本地缓存相关数据统计}
  \centering
  \begin{tabular}{cccccc}
   \toprule
@@ -181,25 +181,25 @@ hadoop dfs -cat output/python/100/part-r-00000
 
 同上一小节，在本实验中，所用测试数据是提前使用工具处理好的数据，目的在于验证程序的准确性并分析对比其运行时间。
 
-与原生Java运行效果相比，Streaming的处理时间比Java长，在下一章里，本文会对这一现象进行详细的分析和说明。
+与原生Java运行效果相比，Streaming的处理时间较长，在下一章里，本文会对这一现象进行详细的分析和说明。
 
 具体运行结果和运行时间如下表\ref{tab:python1}和表\ref{tab:python2}：
 
 \begin{table}[htbp]
  \caption{\label{tab:python1}Python程序的Map、Reduce数量及其运行时间}
  \centering
- \begin{tabular}{cccccc}
+ \begin{tabular}{ccccccc}
   \toprule
-  Log大小 & Map & Reduce & Map运行 & Reduce运行 & 总时间\\
-  (行) & 数量 & 数量 & 时间(ms) & 时间(ms) & 时间(ms)\\
+  Log大小 & Map & Reduce & Map运行 & Reduce运行 & 总时间 & 运行结果\\
+  (行) & 数量 & 数量 & 时间(ms) & 时间(ms) & 时间(ms) & (行)\\
   \midrule
-  100 & 2 & 1 & 640 & 2,290 & 2,930\\
-  1,000 & 2 & 1 & 800 & 1,750 & 2,550\\
-  10,000 & 2 & 1 & 1,210 & 2,300 & 3,510\\
-  100,000 & 2 & 1 & 2,830 & 2,060 & 4,890\\
-  1,000,000 & 7 & 1 & 20,310 & 3,250 & 23,560\\
-  10,000,000 & 67 & 1 & 191,800 & 30,870 & 222,670\\
-  100,000,000 & 648 & 1 & 1,832,430 & 283,340 & 2,115,770\\
+  100 & 2 & 1 & 640 & 2,290 & 2,930 & 100\\
+  1,000 & 2 & 1 & 800 & 1,750 & 2,550 & 1,000\\
+  10,000 & 2 & 1 & 1,210 & 2,300 & 3,510 & 10,000\\
+  100,000 & 2 & 1 & 2,830 & 2,060 & 4,890 & 100,000\\
+  1,000,000 & 7 & 1 & 20,310 & 3,250 & 23,560 & 1,000,000\\
+  10,000,000 & 67 & 1 & 191,800 & 30,870 & 222,670 & 10,000,000\\
+  100,000,000 & 648 & 1 & 1,832,430 & 283,340 & 2,115,770 & 100,000,000\\
   \bottomrule
  \end{tabular}
 \end{table}
@@ -225,4 +225,4 @@ hadoop dfs -cat output/python/100/part-r-00000
 \end{table}
 
 \section{本章小结}
-本章以Web访问日志程序开发为例，分别介绍了在Hadoop下的两种程序开发模式：原生Java和Streaming，并对进行了正确性验证，证明了MapReduce框架的正确性和可行性，并收集了相关有价值的Counter数据。在下一章里，本文会根据本章第三节所摘录的测试结果做以分析和说明。
+本章以Web访问日志程序开发为例，分别介绍了在Hadoop下的两种程序开发模式：原生Java和Streaming，并对其进行了正确性验证，证明了MapReduce框架的正确性和可行性。同时测试中收集了与运行相关的有价值的Counter数据。在下一章里，本文会根据本章第三节所摘录的测试结果做以分析和说明。
